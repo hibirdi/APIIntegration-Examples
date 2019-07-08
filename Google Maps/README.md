@@ -1,6 +1,6 @@
 # Google Maps API Integration App
 
-This project is intended to provide an easy to use example of how to integrate our Catalog & Image APIs into a Google Maps javascript application.
+This project is intended to provide an easy-to-use example of how to integrate our Catalog & Image APIs into a Google Maps javascript application.
 
 To run the app:
 1. On line 95, add your Google Maps API key
