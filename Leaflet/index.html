@@ -91,6 +91,10 @@
 	map.on('move', function() {
 	    removeTiles();
 	});
+	// Whenever the map is zoomed, remove any existing Bird.i tiles
+	map.on('zoom', function() {
+	    removeTiles();
+	});
 
 	// Your Bird.i token
 	const TOKEN = "YOUR_TOKEN";
