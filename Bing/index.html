@@ -119,10 +119,7 @@
 				// Get the x and y coordinates of the upper-left and bottom-right tiles
 				// from the available 5x5 grid
 				*/
-				const minTileX = catalogResponse['minTileX'];
-				const minTileY = catalogResponse['minTileY'];
-				const maxTileX = catalogResponse['maxTileX'];
-				const maxTileY = catalogResponse['maxTileY'];
+				const {minTileX, minTileY, maxTileX, maxTileY} = catalogResponse;
 				// For each of 5 columns
 				for (let i = minTileX; i <= maxTileX + outsideBoundary; i++) {
 					// For each of 5 rows
