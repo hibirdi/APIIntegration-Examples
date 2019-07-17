@@ -142,10 +142,7 @@
 				// Get the x and y coordinates of the upper-left and bottom-right tiles
 				// from the available 5x5 grid
 				*/
-				const minTileX = catalogResponse['minTileX'];
-				const minTileY = catalogResponse['minTileY'];
-				const maxTileX = catalogResponse['maxTileX'];
-				const maxTileY = catalogResponse['maxTileY'];
+				const {minTileX, minTileY, maxTileX, maxTileY} = catalogResponse;
 				// Subtract the first and second tiles' x positions to get the desired size of a tile
 				const sideLength = getTileScreenCoords(minTileX + 1, minTileY, zoom).pixelsX -
 					getTileScreenCoords(minTileX, minTileY, zoom).pixelsX;
