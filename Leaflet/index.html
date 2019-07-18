@@ -85,15 +85,15 @@
 
 	// Whenever the map stops moving, load Bird.i tiles for the new location
 	map.on('moveend', function() {
-	    getTiles();
+		getTiles();
 	});
 	// Whenever the map is moved, remove any existing Bird.i tiles
 	map.on('move', function() {
-	    removeTiles();
+		removeTiles();
 	});
 	// Whenever the map is zoomed, remove any existing Bird.i tiles
-	map.on('zoom', function() {
-	    removeTiles();
+	map.on('zoomstart', function() {
+		removeTiles();
 	});
 
 	// Your Bird.i token
@@ -126,14 +126,8 @@
 		}
 
 		let catalogUrl =
-			"https://catalog-api.hibirdi.com/timeseries/lat/" + lat.toFixed(6) +
+			"https://catalog-api.hibirdi.com/catalog/lat/" + lat.toFixed(6) +
 			"/lng/" + lng.toFixed(6) + "/zoom/" + zoom + "/token/" + TOKEN + "/" + fullCoverage;
-
-		// Find the tile coordinates of the center of the map
-		let { xtile, ytile } = lngLatToXY(lng, lat, zoom);
-		// Since we want a 5x5 grid, the top-left tile will be x-2 and y-2 of the center tile
-		const topLeftX = xtile - 2;
-		const topLeftY = ytile - 2;
 
 		fetch(catalogUrl)
 		.then(response => {
@@ -144,11 +138,16 @@
 			// however, you could extend this functionality to use any of the available images,
 			// allow the user to switch between multiple images, etc
 			*/
-			let firstCatalogItem = catalogResponse[0];
+			let firstCatalogItem = catalogResponse['items'][0];
+			/*
+			// Get the x and y coordinates of the upper-left and bottom-right tiles
+			// from the available 5x5 grid
+			*/
+			const {minTileX, minTileY, maxTileX, maxTileY} = catalogResponse;
 			// For each of 5 columns
-			for (let i = topLeftX; i < topLeftX + 5 + outsideBoundary; i++) {
+			for (let i = minTileX; i <= maxTileX; i++) {
 				// For each of 5 rows
-				for (let j = topLeftY; j < topLeftY + 5; j++) {
+				for (let j = minTileY; j <= maxTileY; j++) {
 					// Create an img element, with the src linking to the Bird.i image API
 					let imageUrl =
 						"https://image-api.hibirdi.com/image/id/" + firstCatalogItem["id"] +
@@ -189,15 +188,6 @@
 		return { pixelsX, pixelsY };
 	}
 
-	lngLatToXY = (lng_deg, lat_deg, zoom) => {
-		// Converts lng and lat coordinates to x and y tile coordinates.
-		n = Math.pow(2, zoom);
-		xtile = Math.floor(((lng_deg + 180) / 360) * n);
-		lat_rad = degreesToRadian(lat_deg);
-		ytile = Math.floor(((1 - Math.log(Math.tan(lat_rad) + 1 / Math.cos(lat_rad)) / Math.PI) / 2) * n);
-		return { xtile, ytile };
-	};
-
 	XYToLatLng = (x, y, zoom) => {
 		// Converts x and y tile coordinates to lng and lat coordinates. This returns the NW-corner of the tile.
 		let lng = x / Math.pow(2, zoom) * 360 - 180;
@@ -205,10 +195,6 @@
 		let lat = -1 * (radiansToDegrees(Math.atan(Math.sinh(n))) * -1);
 		return { lat, lng };
 	}
-
-	degreesToRadian = degreesVal => {
-		return degreesVal * (Math.PI / 180);
-	};
 
 	radiansToDegrees = radiansVal =>{
 		return radiansVal * (180 / Math.PI);
