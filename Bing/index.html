@@ -1,211 +1,208 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Bird.i Bing app</title>
-	<link rel="icon" href="favicon.ico" type="image/x-icon"/>
-	<meta charset="utf-8" />
-	<style>
-		body {
-			margin: 0;
-			padding: 0;
-		}
-		#map {
-			position: absolute;
-			width: 100vw;
-			height: 100vh;
-		}
-		#overlay {
-			pointer-events: none;
-			width: 100vw;
-			height: 100vh;
-			overflow: hidden;
-			position: relative;
-		}
-		#overlay img {
-			position: absolute;
-			width: 256px;
-			height: 256px;
-		}
-		#birdi-toggle {
-			position: absolute;
-			bottom: 50px;
-			right: 25px;
-		}
-		#birdi-toggle button {
-			font-size: 18px;
-		}
-		#birdi-zoom {
-			pointer-events: none;
-			position: absolute;
-			bottom: 40px;
-			left: 40px;
-			font-size: 18px;
-			padding: 5px;
-		}
-	</style>
+  <title>Bird.i Bing app</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon"/>
+  <meta charset="utf-8" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    #map {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+    }
+    #overlay {
+      pointer-events: none;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    #overlay img {
+      position: absolute;
+      width: 256px;
+      height: 256px;
+    }
+    #birdi-toggle {
+      position: absolute;
+      bottom: 50px;
+      right: 25px;
+    }
+    #birdi-toggle button {
+      font-size: 18px;
+    }
+    #birdi-zoom {
+      pointer-events: none;
+      position: absolute;
+      bottom: 40px;
+      left: 40px;
+      font-size: 18px;
+      padding: 5px;
+    }
+  </style>
 </head>
 <body>
-	<div id="map"></div>
-	<div id="overlay" style="visibility: visible;"></div>
-	<div id="birdi-toggle">
-		<button onclick="toggleBirdiTiles()">Toggle Bird.i tiles</button>
-		<button onclick="toggleOutsideBoundaryError()">Toggle boundary error</button>
-	</div>
-	<div id="birdi-zoom">Zoom level: </div>
+  <div id="map"></div>
+  <div id="overlay" style="visibility: visible;"></div>
+  <div id="birdi-toggle">
+    <button onclick="toggleBirdiTiles()">Toggle Bird.i tiles</button>
+    <button onclick="toggleOutsideBoundaryError()">Toggle boundary error</button>
+  </div>
+  <div id="birdi-zoom">Zoom level: </div>
 
-	<script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=[YOUR_BING_MAPS_KEY]' async defer></script>
-	<script type='text/javascript'>
-		let map;
-		function GetMap() {
-			map = new Microsoft.Maps.Map('#map', {
-				center: new Microsoft.Maps.Location(55.857, -4.250),
-				zoom: 14,
-				showMapTypeSelector: false,
-				showLocateMeButton: false,
-			});
+  <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?callback=GetMap&key=[YOUR_BING_MAPS_KEY]' async defer></script>
+  <script type='text/javascript'>
+    let map;
+    function GetMap() {
+      map = new Microsoft.Maps.Map('#map', {
+        center: new Microsoft.Maps.Location(55.857, -4.250),
+        zoom: 14,
+        showMapTypeSelector: false,
+        showLocateMeButton: false,
+      });
 
-			// Whenever the map stops moving, load Bird.i tiles for the new location
-			Microsoft.Maps.Events.addHandler(map, 'viewchangeend', function () {
-				getTiles();
-			});
-			// Whenever the map starts moving, remove any existing Bird.i tiles
-			Microsoft.Maps.Events.addHandler(map, 'viewchangestart', function () {
-				removeTiles();
-			});
-		}
+      // Whenever the map stops moving, load Bird.i tiles for the new location
+      Microsoft.Maps.Events.addHandler(map, 'viewchangeend', function () {
+        getTiles();
+      });
+      // Whenever the map starts moving, remove any existing Bird.i tiles
+      Microsoft.Maps.Events.addHandler(map, 'viewchangestart', function () {
+        removeTiles();
+      });
+    }
 
-		// Your Bird.i token
-		const TOKEN = "YOUR_TOKEN";
-		const overlayDiv = document.getElementById('overlay');
-		let outsideBoundary = 0;
-		let fullCoverage = "";
-		/*
-		// Uncomment this line to only show an image if
-		// it fully covers the tiles you're going to load:
-		*/
-		// fullCoverage = "?fullCoverage=true";
+    // Your Bird.i token
+    const TOKEN = "YOUR_TOKEN";
+    const overlayDiv = document.getElementById('overlay');
+    let outsideBoundary = 0;
+    let fullCoverage = "";
+    /*
+    // Uncomment this line to only show an image if
+    // it fully covers the tiles you're going to load:
+    */
+    // fullCoverage = "?fullCoverage=true";
 
-		getTiles = () => {
-			// Remove any existing tiles before loading new ones
-			removeTiles();
-			// Get current lat, lng, and zoom
-			let lat = map.getCenter().latitude;
-			let lng = map.getCenter().longitude;
-			let zoom = map.getZoom();
-			// Show the zoom level in the bottom-left of the map
-			showZoom(zoom);
-			/*
-			// Bird.i tiles are only available within zooms 14 to 19. If you request images
-			// outside this range, you'll get an error
-			*/
-			if (zoom < 14 || zoom > 19) {
-				return;
-			}
-			let catalogUrl =
-			"https://catalog-api.hibirdi.com/catalog/lat/" + lat.toFixed(6) +
-			"/lng/" + lng.toFixed(6) + "/zoom/" + zoom + "/token/" + TOKEN + "/" + fullCoverage;
-			fetch(catalogUrl)
-			.then(response => {
-				return response.json();
-			}).then(catalogResponse => {
-				/*
-				// For this example, we are simply using the first image in the returned catalog;
-				// however, you could extend this functionality to use any of the available images,
-				// allow the user to switch between multiple images, etc
-				*/
-				console.log(catalogResponse);
-				let firstCatalogItem = catalogResponse['items'][0];
-				/*
-				// Get the x and y coordinates of the upper-left and bottom-right tiles
-				// from the available 5x5 grid
-				*/
-				const {minTileX, minTileY, maxTileX, maxTileY} = catalogResponse;
-				// For each of 5 columns
-				for (let i = minTileX; i <= maxTileX + outsideBoundary; i++) {
-					// For each of 5 rows
-					for (let j = minTileY; j <= maxTileY; j++) {
-						// Create an img element, with the src linking to the Bird.i image API
-						let imageUrl =
-						"https://image-api.hibirdi.com/image/id/" + firstCatalogItem["id"] +
-						"/x/" + i + "/y/" + j + "/z/" + zoom +
-						"?requestId=" + firstCatalogItem["requestId"] + "&token=" + TOKEN;
-						let img = document.createElement('img');
-						img.src = imageUrl;
-						// Find the screen coordinates of the upper-left corner to set position values
-						let { pixelsX, pixelsY } = getTileScreenCoords(i, j, zoom);
-						img.style.left = pixelsX + "px";
-						img.style.top = pixelsY + "px";
-						// Add this tile to our overlay
-						overlayDiv.appendChild(img);
-					}
-				}
-			}).catch(err => {
-				console.log("Something went wrong with the catalog request:");
-				console.log(err);
-			});
-		}
-		removeTiles = () => {
-			// Removes any tiles from the overlay div
-			var child = overlayDiv.lastElementChild;
-			while (child) {
-				overlayDiv.removeChild(child);
-				child = overlayDiv.lastElementChild;
-			}
-		}
-		getTileScreenCoords = (x, y, zoom) => {
-			// Given tile coordinates, returns x and y pixel positions of the upper-left corner of the tile.
-			let { lat, lng } = XYToLatLng(x, y, zoom);
-			let loc = new Microsoft.Maps.Location(lat, lng);
-			let screenCoords = map.tryLocationToPixel(loc, Microsoft.Maps.PixelReference.page);
-			const pixelsX = Math.round(screenCoords.x * 100) / 100;
-			const pixelsY = Math.round(screenCoords.y * 100) / 100;
-			return { pixelsX, pixelsY };
-		}
-		XYToLatLng = (x, y, zoom) => {
-			// Converts x and y tile coordinates to lat and lng coordinates. This returns the NW-corner of the tile.
-			let n = Math.PI - (2 * Math.PI * y) / Math.pow(2, zoom);
-			let lat = -1 * (radiansToDegrees(Math.atan(Math.sinh(n))) * -1);
-			let lng = x / Math.pow(2, zoom) * 360 - 180;
-			return { lat, lng };
-		}
-		radiansToDegrees = radiansVal =>{
-			return radiansVal * (180 / Math.PI);
-		}
-		toggleBirdiTiles = () => {
-			if (overlayDiv.style.visibility == "visible") {
-				overlayDiv.style.visibility = "hidden";
-			} else {
-				overlayDiv.style.visibility = "visible";
-			}
-		}
-		toggleOutsideBoundaryError = () => {
-			if (outsideBoundary == 1) {
-				console.log(
-				"%cWe are now requesting a 5x5 grid of tiles, which should cause no errors.",
-				"color:green; font-size: 20px"
-				)
-				outsideBoundary = 0;
-			} else {
-				console.log(
-				"%cWe are now requesting a 6x5 grid of tiles, which should cause 5 400 errors:",
-				"color:red; font-size: 20px;"
-				)
-				outsideBoundary = 1;
-			}
-			getTiles();
-		}
-		showZoom = (zoom) => {
-			const zoomDiv = document.getElementById('birdi-zoom');
-			if (zoom < 14 || zoom > 19) {
-				zoomDiv.style.backgroundColor = "rgba(255,0,0,0.5)";
-				zoomDiv.style.color = "white";
-				zoomDiv.innerHTML = "Zoom level: " + zoom + " - Bird.i tiles won't show!";
-			} else {
-				zoomDiv.style.backgroundColor = "rgba(0,0,0,0.5)";
-				zoomDiv.style.color = "white";
-				zoomDiv.innerHTML = "Zoom level: " + zoom;
-			}
-		}
-	</script>
+    getTiles = () => {
+      // Remove any existing tiles before loading new ones
+      removeTiles();
+      // Get current lat, lng, and zoom
+      let lat = map.getCenter().latitude;
+      let lng = map.getCenter().longitude;
+      let zoom = map.getZoom();
+      // Show the zoom level in the bottom-left of the map
+      showZoom(zoom);
+      /*
+      // Bird.i tiles are only available within zooms 14 to 19. If you request images
+      // outside this range, you'll get an error
+      */
+      if (zoom < 14 || zoom > 19) {
+        return;
+      }
+      let catalogUrl =
+        `https://catalog-api.hibirdi.com/catalog/lat/${lat.toFixed(6)}/lng/${lng.toFixed(6)}/zoom/${zoom}/token/${TOKEN}/${fullCoverage}`;
+      fetch(catalogUrl)
+      .then(response => {
+        return response.json();
+      }).then(catalogResponse => {
+        /*
+        // For this example, we are simply using the first image in the returned catalog;
+        // however, you could extend this functionality to use any of the available images,
+        // allow the user to switch between multiple images, etc
+        */
+        console.log(catalogResponse);
+        let firstCatalogItem = catalogResponse['items'][0];
+        /*
+        // Get the x and y coordinates of the upper-left and bottom-right tiles
+        // from the available 5x5 grid
+        */
+        const {minTileX, minTileY, maxTileX, maxTileY} = catalogResponse;
+        // For each of 5 columns
+        for (let i = minTileX; i <= maxTileX + outsideBoundary; i++) {
+          // For each of 5 rows
+          for (let j = minTileY; j <= maxTileY; j++) {
+            // Create an img element, with the src linking to the Bird.i image API
+            let imageUrl =
+              `https://image-api.hibirdi.com/image/id/${firstCatalogItem["id"]}/x/${i}/y/${j}/z/${zoom}?requestId=${firstCatalogItem["requestId"]}&token=${TOKEN}`;
+            let img = document.createElement('img');
+            img.src = imageUrl;
+            // Find the screen coordinates of the upper-left corner to set position values
+            let { pixelsX, pixelsY } = getTileScreenCoords(i, j, zoom);
+            img.style.left = `${pixelsX}px`;
+            img.style.top = `${pixelsY}px`;
+            // Add this tile to our overlay
+            overlayDiv.appendChild(img);
+          }
+        }
+      }).catch(err => {
+        console.log("Something went wrong with the catalog request:");
+        console.log(err);
+      });
+    }
+    removeTiles = () => {
+      // Removes any tiles from the overlay div
+      var child = overlayDiv.lastElementChild;
+      while (child) {
+        overlayDiv.removeChild(child);
+        child = overlayDiv.lastElementChild;
+      }
+    }
+    getTileScreenCoords = (x, y, zoom) => {
+      // Given tile coordinates, returns x and y pixel positions of the upper-left corner of the tile.
+      let { lat, lng } = XYToLatLng(x, y, zoom);
+      let loc = new Microsoft.Maps.Location(lat, lng);
+      let screenCoords = map.tryLocationToPixel(loc, Microsoft.Maps.PixelReference.page);
+      const pixelsX = Math.round(screenCoords.x * 100) / 100;
+      const pixelsY = Math.round(screenCoords.y * 100) / 100;
+      return { pixelsX, pixelsY };
+    }
+    XYToLatLng = (x, y, zoom) => {
+      // Converts x and y tile coordinates to lat and lng coordinates. This returns the NW-corner of the tile.
+      let n = Math.PI - (2 * Math.PI * y) / Math.pow(2, zoom);
+      let lat = -1 * (radiansToDegrees(Math.atan(Math.sinh(n))) * -1);
+      let lng = x / Math.pow(2, zoom) * 360 - 180;
+      return { lat, lng };
+    }
+    radiansToDegrees = radiansVal =>{
+      return radiansVal * (180 / Math.PI);
+    }
+    toggleBirdiTiles = () => {
+      if (overlayDiv.style.visibility == "visible") {
+        overlayDiv.style.visibility = "hidden";
+      } else {
+        overlayDiv.style.visibility = "visible";
+      }
+    }
+    toggleOutsideBoundaryError = () => {
+      if (outsideBoundary == 1) {
+        console.log(
+        "%cWe are now requesting a 5x5 grid of tiles, which should cause no errors.",
+        "color:green; font-size: 20px"
+        )
+        outsideBoundary = 0;
+      } else {
+        console.log(
+        "%cWe are now requesting a 6x5 grid of tiles, which should cause 5 400 errors:",
+        "color:red; font-size: 20px;"
+        )
+        outsideBoundary = 1;
+      }
+      getTiles();
+    }
+    showZoom = (zoom) => {
+      const zoomDiv = document.getElementById('birdi-zoom');
+      if (zoom < 14 || zoom > 19) {
+        zoomDiv.style.backgroundColor = "rgba(255,0,0,0.5)";
+        zoomDiv.style.color = "white";
+        zoomDiv.innerHTML = `Zoom level: ${zoom} - Bird.i tiles won't show!`;
+      } else {
+        zoomDiv.style.backgroundColor = "rgba(0,0,0,0.5)";
+        zoomDiv.style.color = "white";
+        zoomDiv.innerHTML = `Zoom level: ${zoom}`;
+      }
+    }
+  </script>
 </body>
 </html>
